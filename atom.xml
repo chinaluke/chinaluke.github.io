@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-08-09T06:22:50.350Z</updated>
+  <updated>2023-08-10T02:53:04.475Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -17,21 +17,42 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
-    <title>第一篇文章</title>
-    <link href="http://example.com/2023/08/09/%E7%AC%AC%E4%B8%80%E7%AF%87%E6%96%87%E7%AB%A0/"/>
-    <id>http://example.com/2023/08/09/%E7%AC%AC%E4%B8%80%E7%AF%87%E6%96%87%E7%AB%A0/</id>
+    <title>Hello World</title>
+    <link href="http://example.com/2023/08/10/hello-world/"/>
+    <id>http://example.com/2023/08/10/hello-world/</id>
+    <published>2023-08-10T02:53:04.475Z</published>
+    <updated>2023-08-10T02:53:04.475Z</updated>
+    
+    <content type="html"><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p><span id="more"></span><h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p><h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p><h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p><h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>]]></content>
+    
+    
+    <summary type="html">&lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.io/docs/&quot;&gt;documentation&lt;/a&gt; for more info. If you get any problems when using Hexo, you can find the answer in &lt;a href=&quot;https://hexo.io/docs/troubleshooting.html&quot;&gt;troubleshooting&lt;/a&gt; or you can ask me on &lt;a href=&quot;https://github.com/hexojs/hexo/issues&quot;&gt;GitHub&lt;/a&gt;.&lt;/p&gt;</summary>
+    
+    
+    
+    
+  </entry>
+  
+  <entry>
+    <title>todo list</title>
+    <link href="http://example.com/2023/08/09/todo_list/"/>
+    <id>http://example.com/2023/08/09/todo_list/</id>
     <published>2023-08-09T06:19:56.000Z</published>
-    <updated>2023-08-09T06:22:50.350Z</updated>
+    <updated>2023-08-10T02:57:37.301Z</updated>
     
-    <content type="html"><![CDATA[<p>点击阅读前文前, 首页能看到的文章的简短描述</p><span id="more"></span>]]></content>
-    
-    
-    <summary type="html">chinaluke的第一篇文章</summary>
+    <content type="html"><![CDATA[<h1 id="todo-list"><a href="#todo-list" class="headerlink" title="todo list"></a>todo list</h1><ul><li>完成google&#x2F;baidu sitemap</li><li>完善aboutme</li><li>一些博文</li></ul><span id="more"></span>]]></content>
     
     
+    <summary type="html">todo list</summary>
     
-    <category term="杂项" scheme="http://example.com/categories/%E6%9D%82%E9%A1%B9/"/>
     
+    
+    <category term="todo_list" scheme="http://example.com/categories/todo-list/"/>
+    
+    
+    <category term="todo" scheme="http://example.com/tags/todo/"/>
+    
+    <category term="other" scheme="http://example.com/tags/other/"/>
     
   </entry>
   
