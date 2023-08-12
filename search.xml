@@ -1,33 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>todo list</title>
-    <url>/2023/08/09/todo_list/</url>
-    <content><![CDATA[<p>待办事项</p>
-<span id="more"></span>
-
-<h1 id="todo-list"><a href="#todo-list" class="headerlink" title="todo list"></a>todo list</h1><h2 id="hexo-next"><a href="#hexo-next" class="headerlink" title="hexo&#x2F;next"></a>hexo&#x2F;next</h2><ul>
-<li>完成google&#x2F;baidu sitemap</li>
-<li>完善aboutme</li>
-<li>添加头像</li>
-</ul>
-<h2 id="技术"><a href="#技术" class="headerlink" title="技术"></a>技术</h2><ul>
-<li>syslog</li>
-<li>llvm&#x2F;clang</li>
-<li>gn&#x2F;ninja</li>
-<li>freertos支持模块化加载</li>
-<li>使用python绘制任务燃尽图、缺陷收敛图</li>
-</ul>
-<h2 id="书籍"><a href="#书籍" class="headerlink" title="书籍"></a>书籍</h2>]]></content>
-      <categories>
-        <category>todo_list</category>
-      </categories>
-      <tags>
-        <tag>todo</tag>
-        <tag>other</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Hello World</title>
     <url>/2023/08/10/hello-world/</url>
     <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
@@ -45,6 +18,33 @@
 
 <p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
 ]]></content>
+  </entry>
+  <entry>
+    <title>todo list</title>
+    <url>/2023/08/09/todo_list/</url>
+    <content><![CDATA[<p>待办事项</p>
+<span id="more"></span>
+
+<h1 id="todo-list"><a href="#todo-list" class="headerlink" title="todo list"></a>todo list</h1><h2 id="hexo-next"><a href="#hexo-next" class="headerlink" title="hexo&#x2F;next"></a>hexo&#x2F;next</h2><ul>
+<li>完成google&#x2F;baidu sitemap</li>
+<li>完善aboutme</li>
+<li><del>添加头像</del></li>
+</ul>
+<h2 id="技术"><a href="#技术" class="headerlink" title="技术"></a>技术</h2><ul>
+<li>syslog</li>
+<li>llvm&#x2F;clang</li>
+<li>gn&#x2F;ninja</li>
+<li>freertos支持模块化加载</li>
+<li><del>使用python绘制任务燃尽图、缺陷收敛图</del></li>
+</ul>
+<h2 id="书籍"><a href="#书籍" class="headerlink" title="书籍"></a>书籍</h2>]]></content>
+      <categories>
+        <category>todo_list</category>
+      </categories>
+      <tags>
+        <tag>todo</tag>
+        <tag>other</tag>
+      </tags>
   </entry>
   <entry>
     <title>使用python解析CVS表格绘制燃尽图和收敛图</title>

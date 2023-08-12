@@ -64,9 +64,9 @@
     <link href="http://example.com/2023/08/09/todo_list/"/>
     <id>http://example.com/2023/08/09/todo_list/</id>
     <published>2023-08-09T06:19:56.000Z</published>
-    <updated>2023-08-11T06:03:02.119Z</updated>
+    <updated>2023-08-12T09:03:09.266Z</updated>
     
-    <content type="html"><![CDATA[<p>待办事项</p><span id="more"></span><h1 id="todo-list"><a href="#todo-list" class="headerlink" title="todo list"></a>todo list</h1><h2 id="hexo-next"><a href="#hexo-next" class="headerlink" title="hexo&#x2F;next"></a>hexo&#x2F;next</h2><ul><li>完成google&#x2F;baidu sitemap</li><li>完善aboutme</li><li>添加头像</li></ul><h2 id="技术"><a href="#技术" class="headerlink" title="技术"></a>技术</h2><ul><li>syslog</li><li>llvm&#x2F;clang</li><li>gn&#x2F;ninja</li><li>freertos支持模块化加载</li><li>使用python绘制任务燃尽图、缺陷收敛图</li></ul><h2 id="书籍"><a href="#书籍" class="headerlink" title="书籍"></a>书籍</h2>]]></content>
+    <content type="html"><![CDATA[<p>待办事项</p><span id="more"></span><h1 id="todo-list"><a href="#todo-list" class="headerlink" title="todo list"></a>todo list</h1><h2 id="hexo-next"><a href="#hexo-next" class="headerlink" title="hexo&#x2F;next"></a>hexo&#x2F;next</h2><ul><li>完成google&#x2F;baidu sitemap</li><li>完善aboutme</li><li><del>添加头像</del></li></ul><h2 id="技术"><a href="#技术" class="headerlink" title="技术"></a>技术</h2><ul><li>syslog</li><li>llvm&#x2F;clang</li><li>gn&#x2F;ninja</li><li>freertos支持模块化加载</li><li><del>使用python绘制任务燃尽图、缺陷收敛图</del></li></ul><h2 id="书籍"><a href="#书籍" class="headerlink" title="书籍"></a>书籍</h2>]]></content>
     
     
     <summary type="html">todo list</summary>
