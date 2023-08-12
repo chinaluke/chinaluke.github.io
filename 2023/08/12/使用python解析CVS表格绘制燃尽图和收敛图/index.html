@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":true,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":true,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":-1,"unescape":true,"preload":false},"motion":{"enable":true,"async":true,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="近期有个任务，是让部门的项目开发变得可视化，以便老板们能快速了解项目情况。 我这边主要是提供思路，从PMS系统中提取项目的任务以及缺陷情况，绘制成两张图——任务燃尽图（TR4）以及缺陷收敛图（TR5）。 当然这个开发任务最终还是公司IT部门承接，我主要是配合。 近期恰好学习了一些python的知识，心里想着python是否也能实现，于是就有了这批文章。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用python解析CVS表格绘制燃尽图和收敛图">
+<meta property="og:url" content="http://example.com/2023/08/12/%E4%BD%BF%E7%94%A8python%E8%A7%A3%E6%9E%90CVS%E8%A1%A8%E6%A0%BC%E7%BB%98%E5%88%B6%E7%87%83%E5%B0%BD%E5%9B%BE%E5%92%8C%E6%94%B6%E6%95%9B%E5%9B%BE/index.html">
+<meta property="og:site_name" content="chinaluke">
+<meta property="og:description" content="近期有个任务，是让部门的项目开发变得可视化，以便老板们能快速了解项目情况。 我这边主要是提供思路，从PMS系统中提取项目的任务以及缺陷情况，绘制成两张图——任务燃尽图（TR4）以及缺陷收敛图（TR5）。 当然这个开发任务最终还是公司IT部门承接，我主要是配合。 近期恰好学习了一些python的知识，心里想着python是否也能实现，于是就有了这批文章。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/2023/08/12/%E4%BD%BF%E7%94%A8python%E8%A7%A3%E6%9E%90CVS%E8%A1%A8%E6%A0%BC%E7%BB%98%E5%88%B6%E7%87%83%E5%B0%BD%E5%9B%BE%E5%92%8C%E6%94%B6%E6%95%9B%E5%9B%BE/%E4%BB%BB%E5%8A%A1%E7%87%83%E5%B0%BD%E5%9B%BE.png">
+<meta property="og:image" content="http://example.com/2023/08/12/%E4%BD%BF%E7%94%A8python%E8%A7%A3%E6%9E%90CVS%E8%A1%A8%E6%A0%BC%E7%BB%98%E5%88%B6%E7%87%83%E5%B0%BD%E5%9B%BE%E5%92%8C%E6%94%B6%E6%95%9B%E5%9B%BE/%E7%BC%BA%E9%99%B7%E6%94%B6%E6%95%9B%E5%9B%BE.png">
+<meta property="article:published_time" content="2023-08-12T07:59:24.000Z">
+<meta property="article:modified_time" content="2023-08-12T08:52:46.802Z">
+<meta property="article:author" content="chinaluke">
+<meta property="article:tag" content="python">
+<meta property="article:tag" content="可视化">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2023/08/12/%E4%BD%BF%E7%94%A8python%E8%A7%A3%E6%9E%90CVS%E8%A1%A8%E6%A0%BC%E7%BB%98%E5%88%B6%E7%87%83%E5%B0%BD%E5%9B%BE%E5%92%8C%E6%94%B6%E6%95%9B%E5%9B%BE/%E4%BB%BB%E5%8A%A1%E7%87%83%E5%B0%BD%E5%9B%BE.png">
+
+<link rel="canonical" href="http://example.com/2023/08/12/%E4%BD%BF%E7%94%A8python%E8%A7%A3%E6%9E%90CVS%E8%A1%A8%E6%A0%BC%E7%BB%98%E5%88%B6%E7%87%83%E5%B0%BD%E5%9B%BE%E5%92%8C%E6%94%B6%E6%95%9B%E5%9B%BE/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>使用python解析CVS表格绘制燃尽图和收敛图 | chinaluke</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="chinaluke" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">chinaluke</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">行有不得，反求诸己</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">4</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">2</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">3</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/08/12/%E4%BD%BF%E7%94%A8python%E8%A7%A3%E6%9E%90CVS%E8%A1%A8%E6%A0%BC%E7%BB%98%E5%88%B6%E7%87%83%E5%B0%BD%E5%9B%BE%E5%92%8C%E6%94%B6%E6%95%9B%E5%9B%BE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_day1.gif">
+      <meta itemprop="name" content="chinaluke">
+      <meta itemprop="description" content="行有不得，反求诸己">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="chinaluke">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          使用python解析CVS表格绘制燃尽图和收敛图
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2023-08-12 15:59:24 / 修改时间：16:52:46" itemprop="dateCreated datePublished" datetime="2023-08-12T15:59:24+08:00">2023-08-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">技术</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>1.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>近期有个任务，是让部门的项目开发变得可视化，以便老板们能快速了解项目情况。</p>
+<p>我这边主要是提供思路，从PMS系统中提取项目的任务以及缺陷情况，绘制成两张图——任务燃尽图（TR4）以及缺陷收敛图（TR5）。</p>
+<p>当然这个开发任务最终还是公司IT部门承接，我主要是配合。</p>
+<p>近期恰好学习了一些python的知识，心里想着python是否也能实现，于是就有了这批文章。</p>
+<span id="more"></span>
+
+<h1 id="任务燃尽图"><a href="#任务燃尽图" class="headerlink" title="任务燃尽图"></a>任务燃尽图</h1><h2 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h2><p>使用方法：</p>
+<ul>
+<li>task.cvs: 从pms特定项目中导出的任务cvs表格文件</li>
+<li>task_id: 分析指定任务及其所有子任务</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./xxx.py &lt;task.cvs&gt; &lt;task_id&gt;</span><br></pre></td></tr></table></figure>
+
+<p>代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python3</span></span><br><span class="line"><span class="comment"># _*_ coding:utf-8 _*_</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> csv</span><br><span class="line"><span class="keyword">from</span> datetime <span class="keyword">import</span> datetime, timedelta</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">import</span> matplotlib.dates <span class="keyword">as</span> mdates</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> matplotlib</span><br><span class="line"></span><br><span class="line">filename = sys.argv[<span class="number">1</span>]</span><br><span class="line">index = sys.argv[<span class="number">2</span>]</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_xticks</span>(<span class="params">min_date, max_date, delta_day</span>):</span><br><span class="line">    <span class="comment"># 创建日期数组</span></span><br><span class="line">    x_ticks = []</span><br><span class="line">    curr_date = min_date</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 设置日期间隔</span></span><br><span class="line">    delta = timedelta(days=delta_day)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> curr_date &lt;= max_date:</span><br><span class="line">        x_ticks.append(curr_date)</span><br><span class="line">        curr_date += delta</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> x_ticks</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">find_min_max_dates</span>(<span class="params">csv_data, column_index</span>):</span><br><span class="line">    dates = []</span><br><span class="line">    <span class="keyword">for</span> row <span class="keyword">in</span> csv_data:</span><br><span class="line">        date_str = row[column_index]</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            date = datetime.strptime(date_str, <span class="string">&#x27;%Y-%m-%d&#x27;</span>).date()  <span class="comment"># 将日期字符串解析为 datetime 对象</span></span><br><span class="line">            dates.append(date)</span><br><span class="line">        <span class="keyword">except</span> ValueError:</span><br><span class="line">            <span class="keyword">pass</span></span><br><span class="line">    </span><br><span class="line">    min_date = <span class="built_in">min</span>(dates) <span class="keyword">if</span> dates <span class="keyword">else</span> <span class="literal">None</span></span><br><span class="line">    max_date = <span class="built_in">max</span>(dates) <span class="keyword">if</span> dates <span class="keyword">else</span> <span class="literal">None</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> min_date, max_date</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">count_dates_before_3</span>(<span class="params">csv_data, column_index, min_date, max_date</span>):</span><br><span class="line">    date_counts = &#123;&#125;</span><br><span class="line">    </span><br><span class="line">    curr_date = min_date</span><br><span class="line">    <span class="keyword">while</span> curr_date &lt;= max_date:</span><br><span class="line">        date_counts[curr_date] = <span class="number">0</span></span><br><span class="line">        curr_date += timedelta(days=<span class="number">1</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> row <span class="keyword">in</span> csv_data:</span><br><span class="line">        date_str = row[column_index]</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            date_obj = datetime.strptime(date_str, <span class="string">&#x27;%Y-%m-%d&#x27;</span>).date()</span><br><span class="line">            <span class="keyword">if</span> min_date &lt;= date_obj &lt;= max_date:</span><br><span class="line">                curr_date = date_obj</span><br><span class="line">                <span class="keyword">while</span> curr_date &gt;= min_date:</span><br><span class="line">                    date_counts[curr_date] += <span class="number">1</span></span><br><span class="line">                    curr_date -= timedelta(days=<span class="number">1</span>)</span><br><span class="line">        <span class="keyword">except</span> ValueError:</span><br><span class="line">            curr_date = max_date</span><br><span class="line">            <span class="keyword">while</span> curr_date &gt;= min_date:</span><br><span class="line">                date_counts[curr_date] += <span class="number">1</span></span><br><span class="line">                curr_date -= timedelta(days=<span class="number">1</span>)</span><br><span class="line">            <span class="keyword">pass</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> date_counts</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">find_children</span>(<span class="params">csv_data, parent_index, c_col, p_col</span>):</span><br><span class="line">    children = []</span><br><span class="line">    <span class="keyword">for</span> row <span class="keyword">in</span> csv_data:</span><br><span class="line">        <span class="keyword">if</span> row[<span class="number">2</span>] == parent_index:</span><br><span class="line">            children.append(row)  <span class="comment"># 将子任务的索引添加到列表中</span></span><br><span class="line">            children.extend(find_children(csv_data, row[<span class="number">0</span>], c_col, p_col))  <span class="comment"># 递归查找子任务的子任务</span></span><br><span class="line">    <span class="keyword">return</span> children</span><br><span class="line"></span><br><span class="line"><span class="comment"># 打开原始CSV文件和新的CSV文件</span></span><br><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(filename, <span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> csvfile, <span class="built_in">open</span>(filename+<span class="string">&quot;.sort&quot;</span>, <span class="string">&#x27;w&#x27;</span>, newline=<span class="string">&#x27;&#x27;</span>) <span class="keyword">as</span> sorted_csvfile:</span><br><span class="line">    <span class="comment"># 创建CSV读取器和写入器对象</span></span><br><span class="line">    reader = csv.reader(csvfile)</span><br><span class="line">    writer = csv.writer(sorted_csvfile)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 读取原始CSV文件中的数据</span></span><br><span class="line">    data = <span class="built_in">list</span>(reader)</span><br><span class="line"></span><br><span class="line">    writer.writerow(data[<span class="number">0</span>])</span><br><span class="line">  </span><br><span class="line">    <span class="comment"># 查找&quot;父任务&quot;,&quot;计划开始日期&quot;,&quot;计划完成日期&quot;所在的列索引</span></span><br><span class="line">    p_col = <span class="literal">None</span></span><br><span class="line">    s_col = <span class="literal">None</span></span><br><span class="line">    e_col = <span class="literal">None</span></span><br><span class="line">    l_col = <span class="literal">None</span></span><br><span class="line">    <span class="keyword">for</span> i, cell <span class="keyword">in</span> <span class="built_in">enumerate</span>(data[<span class="number">0</span>]):</span><br><span class="line">        <span class="keyword">if</span> cell == <span class="string">&quot;父任务&quot;</span>:</span><br><span class="line">            p_col = i</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> cell == <span class="string">&quot;计划开始日期&quot;</span>:</span><br><span class="line">            s_col = i</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> cell == <span class="string">&quot;计划完成日期&quot;</span>:</span><br><span class="line">            e_col = i</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> cell == <span class="string">&quot;实际完成时间&quot;</span>:</span><br><span class="line">            l_col = i</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 根据第二列对数据进行排序</span></span><br><span class="line">    sorted_data = <span class="built_in">sorted</span>(data[<span class="number">1</span>:], key=<span class="keyword">lambda</span> row: row[<span class="number">0</span>])</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> row <span class="keyword">in</span> sorted_data:</span><br><span class="line">        <span class="keyword">if</span> row[<span class="number">0</span>] == index:</span><br><span class="line">            writer.writerow(row)</span><br><span class="line">            real_min_date = datetime.strptime(row[s_col], <span class="string">&#x27;%Y-%m-%d&#x27;</span>).date()</span><br><span class="line">            <span class="comment">#real_min_date = row[s_col]</span></span><br><span class="line"></span><br><span class="line">    child_data = find_children(sorted_data, index, <span class="number">0</span>, p_col)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> child <span class="keyword">in</span> child_data:</span><br><span class="line">        writer.writerow(child)</span><br><span class="line"></span><br><span class="line">    min_date, max_date = find_min_max_dates(child_data, e_col)</span><br><span class="line"></span><br><span class="line">    date_now = datetime.now().date()</span><br><span class="line">    date_counts_orig = count_dates_before_3(child_data, e_col, real_min_date, max_date)</span><br><span class="line">    real_date_counts_orig = count_dates_before_3(child_data, l_col, real_min_date, max_date)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 截止到今天</span></span><br><span class="line">    date_counts = &#123;k: v <span class="keyword">for</span> k, v <span class="keyword">in</span> date_counts_orig.items() <span class="keyword">if</span> k &lt; date_now&#125;</span><br><span class="line">    real_date_counts = &#123;k: v <span class="keyword">for</span> k, v <span class="keyword">in</span> real_date_counts_orig.items() <span class="keyword">if</span> k &lt; date_now&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 画图</span></span><br><span class="line">    matplotlib.rcParams[<span class="string">&#x27;font.sans-serif&#x27;</span>] = [<span class="string">&#x27;SimHei&#x27;</span>]</span><br><span class="line">    matplotlib.rcParams[<span class="string">&#x27;axes.unicode_minus&#x27;</span>] = <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    plt.figure(figsize=(<span class="number">15</span>, <span class="number">6</span>))</span><br><span class="line"></span><br><span class="line">    x = <span class="built_in">list</span>(date_counts.keys())</span><br><span class="line">    y = <span class="built_in">list</span>(date_counts.values())</span><br><span class="line"></span><br><span class="line">    x1 = <span class="built_in">list</span>(real_date_counts.keys())</span><br><span class="line">    y1 = <span class="built_in">list</span>(real_date_counts.values())</span><br><span class="line"></span><br><span class="line">    plt.plot(x, y, label=<span class="string">&#x27;预期剩余&#x27;</span>)</span><br><span class="line">    plt.plot(x1, y1, label=<span class="string">&#x27;实际剩余&#x27;</span>)</span><br><span class="line">    plt.xlabel(<span class="string">&#x27;日期&#x27;</span>)</span><br><span class="line">    plt.ylabel(<span class="string">&#x27;任务个数&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    plt.title(<span class="string">&#x27;任务燃尽图&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    x_ticks = get_xticks(min_date, date_now, <span class="number">15</span>)</span><br><span class="line">    num_list = mdates.date2num(x_ticks)</span><br><span class="line">    plt.xticks(num_list, [date.strftime(<span class="string">&#x27;%Y-%m-%d&#x27;</span>) <span class="keyword">for</span> date <span class="keyword">in</span> x_ticks])</span><br><span class="line"></span><br><span class="line">    y_ticks = np.arange(<span class="number">0</span>, <span class="number">280</span>, <span class="number">20</span>)</span><br><span class="line">    plt.yticks(y_ticks)</span><br><span class="line"></span><br><span class="line">    plt.xticks(rotation=<span class="number">90</span>)</span><br><span class="line">    plt.legend()</span><br><span class="line">    plt.show()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="效果"><a href="#效果" class="headerlink" title="效果"></a>效果</h2><p><img data-src="/2023/08/12/%E4%BD%BF%E7%94%A8python%E8%A7%A3%E6%9E%90CVS%E8%A1%A8%E6%A0%BC%E7%BB%98%E5%88%B6%E7%87%83%E5%B0%BD%E5%9B%BE%E5%92%8C%E6%94%B6%E6%95%9B%E5%9B%BE/%E4%BB%BB%E5%8A%A1%E7%87%83%E5%B0%BD%E5%9B%BE.png" alt="任务燃尽图"></p>
+<h1 id="缺陷收敛图"><a href="#缺陷收敛图" class="headerlink" title="缺陷收敛图"></a>缺陷收敛图</h1><h2 id="源码-1"><a href="#源码-1" class="headerlink" title="源码"></a>源码</h2><p>使用方法：</p>
+<ul>
+<li>issues.cvs: 从pms特定项目中导出的任务cvs表格文件</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./xxx.py &lt;issues.cvs&gt;</span><br></pre></td></tr></table></figure>
+
+<p>代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python3</span></span><br><span class="line"><span class="comment"># _*_ coding:utf-8 _*_</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> csv</span><br><span class="line"><span class="keyword">from</span> datetime <span class="keyword">import</span> datetime, timedelta</span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> Counter</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">import</span> matplotlib.dates <span class="keyword">as</span> mdates</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> matplotlib</span><br><span class="line"></span><br><span class="line">filename = sys.argv[<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_xticks</span>(<span class="params">min_date, max_date, delta_day</span>):</span><br><span class="line">    <span class="comment"># 设置日期间隔</span></span><br><span class="line">    delta = timedelta(days=delta_day)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 生成日期刻度</span></span><br><span class="line">    x_ticks = mdates.drange(min_date, max_date, delta)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> x_ticks</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">find_min_max_dates</span>(<span class="params">csv_data, column_index</span>):</span><br><span class="line">    dates = []</span><br><span class="line">    <span class="keyword">for</span> row <span class="keyword">in</span> csv_data:</span><br><span class="line">        date_str_tmp = row[column_index]</span><br><span class="line">        date_str = date_str_tmp.split(<span class="string">&#x27; &#x27;</span>)[<span class="number">0</span>]</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            date = datetime.strptime(date_str, <span class="string">&#x27;%Y-%m-%d&#x27;</span>).date()  <span class="comment"># 将日期字符串解析为 datetime 对象</span></span><br><span class="line">            dates.append(date)</span><br><span class="line">        <span class="keyword">except</span> ValueError:</span><br><span class="line">            <span class="keyword">pass</span></span><br><span class="line">    </span><br><span class="line">    min_date = <span class="built_in">min</span>(dates) <span class="keyword">if</span> dates <span class="keyword">else</span> <span class="literal">None</span></span><br><span class="line">    max_date = <span class="built_in">max</span>(dates) <span class="keyword">if</span> dates <span class="keyword">else</span> <span class="literal">None</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> min_date, max_date</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">count_columns</span>(<span class="params">cvs_data, index1, index2, min_date, max_date</span>):</span><br><span class="line">    column1_data = []</span><br><span class="line">    column2_data = []</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> row <span class="keyword">in</span> cvs_data:</span><br><span class="line">        createtime_str = row[index1]</span><br><span class="line">        index1_str = createtime_str.split(<span class="string">&#x27; &#x27;</span>)[<span class="number">0</span>]</span><br><span class="line">        column1_data.append(index1_str)</span><br><span class="line">        <span class="keyword">if</span> row[index2] != <span class="string">&quot;&quot;</span>:</span><br><span class="line">            column2_data.append(row[index2])</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 使用 Counter 统计不同元素的个数</span></span><br><span class="line">    column1_counts = Counter(column1_data)</span><br><span class="line">    column2_counts = Counter(column2_data)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 按日期从旧到新进行排序</span></span><br><span class="line">    sorted_column1_counts = <span class="built_in">dict</span>(<span class="built_in">sorted</span>(column1_counts.items(), key=<span class="keyword">lambda</span> x: x[<span class="number">0</span>]))</span><br><span class="line">    sorted_column2_counts = <span class="built_in">dict</span>(<span class="built_in">sorted</span>(column2_counts.items(), key=<span class="keyword">lambda</span> x: x[<span class="number">0</span>]))</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 填充不在日期范围内的日期，并将计数设置为0</span></span><br><span class="line">    current_date = min_date</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> current_date &lt;= max_date:</span><br><span class="line">        date_str = current_date.strftime(<span class="string">&#x27;%Y-%m-%d&#x27;</span>)</span><br><span class="line">        <span class="keyword">if</span> date_str <span class="keyword">not</span> <span class="keyword">in</span> sorted_column1_counts:</span><br><span class="line">            sorted_column1_counts[date_str] = <span class="number">0</span></span><br><span class="line">        <span class="keyword">if</span> date_str <span class="keyword">not</span> <span class="keyword">in</span> sorted_column2_counts:</span><br><span class="line">            sorted_column2_counts[date_str] = <span class="number">0</span></span><br><span class="line">        current_date += timedelta(days=<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 按日期从旧到新进行排序</span></span><br><span class="line">    sorted_c_counts = <span class="built_in">dict</span>(<span class="built_in">sorted</span>(sorted_column1_counts.items(), key=<span class="keyword">lambda</span> x: x[<span class="number">0</span>]))</span><br><span class="line">    sorted_l_counts = <span class="built_in">dict</span>(<span class="built_in">sorted</span>(sorted_column2_counts.items(), key=<span class="keyword">lambda</span> x: x[<span class="number">0</span>]))</span><br><span class="line"></span><br><span class="line">    current_date = min_date</span><br><span class="line">    sorted_c_counts_sum = &#123;&#125;</span><br><span class="line">    sorted_l_counts_sum = &#123;&#125;</span><br><span class="line">    count_c_sum = <span class="number">0</span></span><br><span class="line">    count_l_sum = <span class="number">0</span></span><br><span class="line">    <span class="keyword">while</span> current_date &lt;= max_date:</span><br><span class="line">        date_str = current_date.strftime(<span class="string">&#x27;%Y-%m-%d&#x27;</span>)</span><br><span class="line">        count_c_sum += sorted_c_counts[date_str]</span><br><span class="line">        sorted_c_counts_sum[date_str] = count_c_sum</span><br><span class="line">        count_l_sum += sorted_l_counts[date_str]</span><br><span class="line">        sorted_l_counts_sum[date_str] = count_l_sum</span><br><span class="line">        current_date += timedelta(days=<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> sorted_c_counts, sorted_l_counts, sorted_c_counts_sum, sorted_l_counts_sum</span><br><span class="line"></span><br><span class="line"><span class="comment"># 打开原始CSV文件和新的CSV文件</span></span><br><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(filename, <span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> csvfile:</span><br><span class="line">    <span class="comment"># 创建CSV读取器和写入器对象</span></span><br><span class="line">    reader = csv.reader(csvfile)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 读取原始CSV文件中的数据</span></span><br><span class="line">    data = <span class="built_in">list</span>(reader)</span><br><span class="line">  </span><br><span class="line">    <span class="comment"># 查找&quot;#&quot;,&quot;创建时间&quot;,&quot;实际完成日期&quot;所在的列索引</span></span><br><span class="line">    i_col = <span class="literal">None</span></span><br><span class="line">    c_col = <span class="literal">None</span></span><br><span class="line">    l_col = <span class="literal">None</span></span><br><span class="line">    <span class="keyword">for</span> i, cell <span class="keyword">in</span> <span class="built_in">enumerate</span>(data[<span class="number">0</span>]):</span><br><span class="line">        <span class="keyword">if</span> cell == <span class="string">&quot;#&quot;</span>:</span><br><span class="line">            i_col = i</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> cell == <span class="string">&quot;创建时间&quot;</span>:</span><br><span class="line">            c_col = i</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> cell == <span class="string">&quot;实际完成时间&quot;</span>:</span><br><span class="line">            l_col = i</span><br><span class="line"></span><br><span class="line">    min_date, fake_max_date = find_min_max_dates(data[<span class="number">1</span>:], c_col)</span><br><span class="line">    date_now = datetime.now().date()</span><br><span class="line">    max_date = date_now</span><br><span class="line"></span><br><span class="line">    c_counts, l_counts, c_counts_sum, l_counts_sum = count_columns(data[<span class="number">1</span>:], c_col, l_col, min_date, max_date)</span><br><span class="line"></span><br><span class="line">    plt.rcParams[<span class="string">&#x27;font.sans-serif&#x27;</span>]=[<span class="string">&#x27;SimHei&#x27;</span>]</span><br><span class="line">    plt.rcParams[<span class="string">&#x27;axes.unicode_minus&#x27;</span>] = <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    plt.figure(figsize=(<span class="number">15</span>, <span class="number">6</span>))</span><br><span class="line"></span><br><span class="line">    x = <span class="built_in">list</span>(c_counts.keys())</span><br><span class="line">    y = <span class="built_in">list</span>(c_counts.values())</span><br><span class="line"></span><br><span class="line">    x1 = <span class="built_in">list</span>(l_counts.keys())</span><br><span class="line">    y1 = <span class="built_in">list</span>(l_counts.values())</span><br><span class="line"></span><br><span class="line">    x2 = <span class="built_in">list</span>(c_counts_sum.keys())</span><br><span class="line">    y2 = <span class="built_in">list</span>(c_counts_sum.values())</span><br><span class="line"></span><br><span class="line">    x3 = <span class="built_in">list</span>(l_counts_sum.keys())</span><br><span class="line">    y3 = <span class="built_in">list</span>(l_counts_sum.values())</span><br><span class="line"></span><br><span class="line">    plt.plot(x, y, label=<span class="string">&#x27;每日新增&#x27;</span>)</span><br><span class="line">    plt.plot(x1, y1, label=<span class="string">&#x27;每日解决&#x27;</span>)</span><br><span class="line">    plt.plot(x2, y2, label=<span class="string">&#x27;累计新增&#x27;</span>)</span><br><span class="line">    plt.plot(x3, y3, label=<span class="string">&#x27;累计解决&#x27;</span>)</span><br><span class="line">    plt.xlabel(<span class="string">&#x27;日期&#x27;</span>)</span><br><span class="line">    plt.ylabel(<span class="string">&#x27;缺陷个数&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    plt.title(<span class="string">&#x27;缺陷收敛图&#x27;</span>)</span><br><span class="line">    x_ticks = get_xticks(min_date, date_now, <span class="number">15</span>)</span><br><span class="line">    <span class="comment"># 将数值转换为日期对象</span></span><br><span class="line">    x_dates = [mdates.num2date(x) <span class="keyword">for</span> x <span class="keyword">in</span> x_ticks]</span><br><span class="line">    <span class="comment"># 将日期对象格式化为字符串</span></span><br><span class="line">    x_labels = [date.strftime(<span class="string">&#x27;%Y-%m-%d&#x27;</span>) <span class="keyword">for</span> date <span class="keyword">in</span> x_dates]</span><br><span class="line">    <span class="comment"># 设置 x 轴刻度为日期字符串</span></span><br><span class="line">    plt.xticks(x_labels, rotation=<span class="number">90</span>)</span><br><span class="line"></span><br><span class="line">    y_ticks = np.arange(<span class="number">0</span>, <span class="number">500</span>, <span class="number">20</span>)</span><br><span class="line">    plt.yticks(y_ticks)</span><br><span class="line"></span><br><span class="line">    plt.legend()</span><br><span class="line">    plt.show()</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="效果-1"><a href="#效果-1" class="headerlink" title="效果"></a>效果</h2><p><img data-src="/2023/08/12/%E4%BD%BF%E7%94%A8python%E8%A7%A3%E6%9E%90CVS%E8%A1%A8%E6%A0%BC%E7%BB%98%E5%88%B6%E7%87%83%E5%B0%BD%E5%9B%BE%E5%92%8C%E6%94%B6%E6%95%9B%E5%9B%BE/%E7%BC%BA%E9%99%B7%E6%94%B6%E6%95%9B%E5%9B%BE.png" alt="缺陷收敛图"></p>
+
+    </div>
+
+    
+    
+    
+
+    
+      <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束 <i class="fa fa-heart"></i> 感谢阅读-------------</div>
+
+    
+        <div class="reward-container">
+  <div>赏☕</div>
+  <button onclick="var qr = document.getElementById('qr'); qr.style.display = (qr.style.display === 'none') ? 'block' : 'none';">
+    打赏
+  </button>
+  <div id="qr" style="display: none;">
+      
+      <div style="display: inline-block;">
+        <img src="/images/wechatpay.png" alt="chinaluke 微信支付">
+        <p>微信支付</p>
+      </div>
+      
+      <div style="display: inline-block;">
+        <img src="/images/alipay.png" alt="chinaluke 支付宝">
+        <p>支付宝</p>
+      </div>
+
+  </div>
+</div>
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>chinaluke
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://example.com/2023/08/12/%E4%BD%BF%E7%94%A8python%E8%A7%A3%E6%9E%90CVS%E8%A1%A8%E6%A0%BC%E7%BB%98%E5%88%B6%E7%87%83%E5%B0%BD%E5%9B%BE%E5%92%8C%E6%94%B6%E6%95%9B%E5%9B%BE/" title="使用python解析CVS表格绘制燃尽图和收敛图">http://example.com/2023/08/12/使用python解析CVS表格绘制燃尽图和收敛图/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/python/" rel="tag"> <i class="fa fa-tag"></i> python</a>
+              <a href="/tags/%E5%8F%AF%E8%A7%86%E5%8C%96/" rel="tag"> <i class="fa fa-tag"></i> 可视化</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/08/10/hello-world/" rel="prev" title="Hello World">
+      <i class="fa fa-chevron-left"></i> Hello World
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%BB%E5%8A%A1%E7%87%83%E5%B0%BD%E5%9B%BE"><span class="nav-number">1.</span> <span class="nav-text">任务燃尽图</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81"><span class="nav-number">1.1.</span> <span class="nav-text">源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%88%E6%9E%9C"><span class="nav-number">1.2.</span> <span class="nav-text">效果</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%BC%BA%E9%99%B7%E6%94%B6%E6%95%9B%E5%9B%BE"><span class="nav-number">2.</span> <span class="nav-text">缺陷收敛图</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81-1"><span class="nav-number">2.1.</span> <span class="nav-text">源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%88%E6%9E%9C-1"><span class="nav-number">2.2.</span> <span class="nav-text">效果</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="chinaluke"
+      src="/images/avatar_day1.gif">
+  <p class="site-author-name" itemprop="name">chinaluke</p>
+  <div class="site-description" itemprop="description">行有不得，反求诸己</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/chinaluke" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;chinaluke" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+<!-- CloudCalendar -->
+<div class="widget-wrap" style="width: 90%;margin-left: auto;margin-right: auto; opacity: 0.97;">
+	<div class="widget" id="CloudCalendar"></div>
+</div>
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">chinaluke</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">2k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">6 分钟</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'forest',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+<!-- calendar widget -->
+
+    <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-calendar/calendar.min.js"></script>
+    <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-calendar/languages.min.js"></script>
+    <script>
+    $(function() {
+        $('#CloudCalendar').aCalendar('zh-CN',
+            $.extend(
+                '', {
+                    single:true,
+                    root:'/calendar/'
+                }
+            )
+        );
+    });
+    </script>
+
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '45123ee475b4438c85aa',
+      clientSecret: 'f515e1197c2c4cd98e8ed50c46ad2e4985d074a3',
+      repo        : 'chinaluke.github.io',
+      owner       : 'chinaluke',
+      admin       : ['chinaluke'],
+      id          : 'ad521fdf5ffe0e86d6b748382df4a14d',
+        language: '',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>
