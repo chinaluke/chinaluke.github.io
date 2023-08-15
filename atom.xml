@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-08-12T08:52:46.802Z</updated>
+  <updated>2023-08-15T01:17:13.937Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Linux_log重定向添加时间戳</title>
+    <link href="http://example.com/2023/08/15/Linux-log%E9%87%8D%E5%AE%9A%E5%90%91%E6%B7%BB%E5%8A%A0%E6%97%B6%E9%97%B4%E6%88%B3/"/>
+    <id>http://example.com/2023/08/15/Linux-log%E9%87%8D%E5%AE%9A%E5%90%91%E6%B7%BB%E5%8A%A0%E6%97%B6%E9%97%B4%E6%88%B3/</id>
+    <published>2023-08-15T00:50:13.000Z</published>
+    <updated>2023-08-15T01:17:13.937Z</updated>
+    
+    <content type="html"><![CDATA[<p>执行Linux命令时，log重定向时在每行前面加入时间戳信息。</p><span id="more"></span><p>命令如下：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">加入时间戳，直接输出到控制台</span></span><br><span class="line">&lt;command&gt; | ts &quot;[%d-%m-%y] %H:%M:%.S&quot;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">加入时间戳，输出到控制台，同时重定向到指定<span class="built_in">log</span></span></span><br><span class="line">&lt;command&gt; | ts &quot;[%d-%m-%y] %H:%M:%.S&quot; 2&gt;&amp;1|tee &lt;rel.log&gt;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="built_in">log</span>输出到控制台，加入时间戳重定向到指定<span class="built_in">log</span></span></span><br><span class="line">&lt;command&gt; 2&gt;&amp;1|tee &gt;(ts &quot;[%d-%m-%y] %H:%M:%.S&quot; &gt; &lt;rel.log&gt;)</span><br></pre></td></tr></table></figure><p>参数说明：</p><ul><li>command: 运行的命令</li><li>rel.log: log重定向的文件</li></ul><p>测试效果：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> test.sh</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"></span><br><span class="line">count=0</span><br><span class="line"></span><br><span class="line">while true; do</span><br><span class="line">        count=$((count+1))</span><br><span class="line">        echo &quot;count: $&#123;count&#125;&quot;</span><br><span class="line">        sleep 1</span><br><span class="line">done</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">./test.sh | ts <span class="string">&quot;[%y-%m-%d] %H:%M:%.S&quot;</span></span></span><br><span class="line">[23-08-15] 09:10:04.574804 count: 1</span><br><span class="line">[23-08-15] 09:10:05.558411 count: 2</span><br><span class="line">[23-08-15] 09:10:06.559441 count: 3</span><br><span class="line">^C</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">./test.sh | ts <span class="string">&quot;[%y-%m-%d] %H:%M:%.S&quot;</span> 2&gt;&amp;1|<span class="built_in">tee</span> 1.<span class="built_in">log</span></span></span><br><span class="line">[23-08-15] 09:10:17.630634 count: 1</span><br><span class="line">[23-08-15] 09:10:18.613956 count: 2</span><br><span class="line">[23-08-15] 09:10:19.615041 count: 3</span><br><span class="line">^C</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> 1.<span class="built_in">log</span></span></span><br><span class="line">[23-08-15] 09:10:17.630634 count: 1</span><br><span class="line">[23-08-15] 09:10:18.613956 count: 2</span><br><span class="line">[23-08-15] 09:10:19.615041 count: 3</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">./test.sh 2&gt;&amp;1|<span class="built_in">tee</span> &gt;(ts <span class="string">&quot;[%d-%m-%y] %H:%M:%.S&quot;</span> &gt; 2.<span class="built_in">log</span>)</span></span><br><span class="line">count: 1</span><br><span class="line">count: 2</span><br><span class="line">count: 3</span><br><span class="line">^C</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> 2.<span class="built_in">log</span></span></span><br><span class="line">[15-08-23] 09:10:28.792188 count: 1</span><br><span class="line">[15-08-23] 09:10:29.773346 count: 2</span><br><span class="line">[15-08-23] 09:10:30.774403 count: 3</span><br></pre></td></tr></table></figure>]]></content>
+    
+    
+    <summary type="html">&lt;p&gt;执行Linux命令时，log重定向时在每行前面加入时间戳信息。&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="技术" scheme="http://example.com/categories/%E6%8A%80%E6%9C%AF/"/>
+    
+    
+    <category term="Linux" scheme="http://example.com/tags/Linux/"/>
+    
+    <category term="log" scheme="http://example.com/tags/log/"/>
+    
+  </entry>
   
   <entry>
     <title>使用python解析CVS表格绘制燃尽图和收敛图</title>
