@@ -27,6 +27,72 @@
       </tags>
   </entry>
   <entry>
+    <title>buildroot中graph-build实操</title>
+    <url>/2024/11/22/buildroot%E4%B8%ADgraph-build%E5%AE%9E%E6%93%8D/</url>
+    <content><![CDATA[<p>又捡起buildroot了。</p>
+<p>近期在做buildroot编译优化，阅读buildroot manual时发现个有意思的东西graph-build，准备实操下。</p>
+<span id="more"></span>
+
+<h1 id="graph-build官方说明"><a href="#graph-build官方说明" class="headerlink" title="graph-build官方说明"></a>graph-build官方说明</h1><p><a href="http://www.buildroot.net/downloads/manual/manual.html#_graphing_the_build_duration">Graphing the build duration</a></p>
+<p>When the build of a system takes a long time, it is sometimes useful to be able to understand which packages are the longest to build, to see if anything can be done to speed up the build. In order to help such build time analysis, Buildroot collects the build time of each step of each package, and allows to generate graphs from this data.</p>
+<p>To generate the build time graph after a build, run:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">make graph-build</span><br></pre></td></tr></table></figure>
+
+<p>This will generate a set of files in output&#x2F;graphs :</p>
+<p>build.hist-build.pdf, a histogram of the build time for each package, ordered in the build order.<br>build.hist-duration.pdf, a histogram of the build time for each package, ordered by duration (longest first)<br>build.hist-name.pdf, a histogram of the build time for each package, order by package name.<br>build.pie-packages.pdf, a pie chart of the build time per package<br>build.pie-steps.pdf, a pie chart of the global time spent in each step of the packages build process.<br>This graph-build target requires the Python Matplotlib and Numpy libraries to be installed (python-matplotlib and python-numpy on most distributions), and also the argparse module if you’re using a Python version older than 2.7 (python-argparse on most distributions).</p>
+<p>By default, the output format for the graph is PDF, but a different format can be selected using the BR2_GRAPH_OUT environment variable. The only other format supported is PNG:</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">BR2_GRAPH_OUT=png make graph-build</span><br></pre></td></tr></table></figure>
+
+<p>简单来说，在构建完成buildroot之后，可以运行make graph-build生成一系列的编译过程中耗时图，主要有：</p>
+<ul>
+<li>build.hist-build.pdf：按构建顺序排序的每个软件包构建时间的直方图。</li>
+<li>build.hist-duration.pdf：按持续时间排序（从最长开始）的每个软件包构建时间的直方图。</li>
+<li>build.hist-name.pdf：按软件包名称排序的每个软件包构建时间的直方图。</li>
+<li>build.pie-packages.pdf：每个软件包构建时间的饼图。</li>
+<li>build.pie-steps.pdf：每个软件包构建过程中各步骤所占总时间的饼图。</li>
+</ul>
+<p>在实际运行时，还存在timeline的图。</p>
+<ul>
+<li>build.timeline.pdf：按照编译时间顺序显示整个编译过程的甘特图。</li>
+</ul>
+<h1 id="graph-build原理"><a href="#graph-build原理" class="headerlink" title="graph-build原理"></a>graph-build原理</h1><p>查看buildroot&#x2F;Makefile文件，可以看到就是使用support&#x2F;scripts&#x2F;graph-build-time对$(O)&#x2F;build&#x2F;build-time.log文件进行解析，生成各类图片。</p>
+<figure class="highlight make"><table><tr><td class="code"><pre><span class="line"><span class="section">graph-build: <span class="variable">$(O)</span>/build/build-time.log</span></span><br><span class="line">	@install -d <span class="variable">$(GRAPHS_DIR)</span></span><br><span class="line">	<span class="variable">$(<span class="built_in">foreach</span> o,name build duration,./support/scripts/graph-build-time \</span></span><br><span class="line"><span class="variable">					--type=histogram --order=<span class="variable">$(o)</span> --input=$(&lt;)</span> \</span><br><span class="line">					--output=<span class="variable">$(GRAPHS_DIR)</span>/build.hist-<span class="variable">$(o)</span>.<span class="variable">$(BR_GRAPH_OUT)</span> \</span><br><span class="line">					<span class="variable">$(<span class="built_in">if</span> <span class="variable">$(BR2_GRAPH_ALT)</span>,--alternate-colors)</span><span class="variable">$(sep)</span>)</span><br><span class="line">	<span class="variable">$(<span class="built_in">foreach</span> t,packages steps,./support/scripts/graph-build-time \</span></span><br><span class="line"><span class="variable">				   --type=pie-<span class="variable">$(t)</span> --input=$(&lt;)</span> \</span><br><span class="line">				   --output=<span class="variable">$(GRAPHS_DIR)</span>/build.pie-<span class="variable">$(t)</span>.<span class="variable">$(BR_GRAPH_OUT)</span> \</span><br><span class="line">				   <span class="variable">$(<span class="built_in">if</span> <span class="variable">$(BR2_GRAPH_ALT)</span>,--alternate-colors)</span><span class="variable">$(sep)</span>)</span><br><span class="line">	./support/scripts/graph-build-time --type=timeline --input=$(&lt;) \</span><br><span class="line">		--output=<span class="variable">$(GRAPHS_DIR)</span>/build.timeline.<span class="variable">$(BR_GRAPH_OUT)</span> \</span><br><span class="line">		<span class="variable">$(<span class="built_in">if</span> <span class="variable">$(BR2_GRAPH_ALT)</span>,--alternate-colors)</span></span><br></pre></td></tr></table></figure>
+
+
+<h1 id="安装python3依赖"><a href="#安装python3依赖" class="headerlink" title="安装python3依赖"></a>安装python3依赖</h1><p>使用graph-build需要python-matplotlib、python-numpy等python包。由于服务器是离线环境，这里提供一种whl的安装方式。</p>
+<p>正常可以到python官网下载，这里使用清华源。</p>
+<ul>
+<li>进入<a href="https://pypi.tuna.tsinghua.edu.cn/simple/kiwisolver/">https://pypi.tuna.tsinghua.edu.cn/simple/kiwisolver/</a> ，将其中的kiwisolver换成对应的包名，并下载对应版本。</li>
+<li>下载后whl后，使用pip3 install xxx.whl进行安装，默认安装到~&#x2F;.local&#x2F;bin下。</li>
+<li>在<del>&#x2F;.bashrc中将</del>&#x2F;.local&#x2F;bin在加入到PATH环境变量中，执行source ~&#x2F;.bashrc生效。</li>
+</ul>
+<figure class="highlight elixir"><table><tr><td class="code"><pre><span class="line"><span class="title class_">PATH</span>=<span class="variable">$PATH</span><span class="symbol">:/home/xxx/</span>.local/bin</span><br></pre></td></tr></table></figure>
+
+<h1 id="graph-build输出"><a href="#graph-build输出" class="headerlink" title="graph-build输出"></a>graph-build输出</h1><h2 id="hist"><a href="#hist" class="headerlink" title="hist"></a>hist</h2><p>hist会列出每个包各个阶段的耗时，主要用于筛选出编译耗时长的包，针对这些包进行优化。</p>
+<h3 id="hist-build"><a href="#hist-build" class="headerlink" title="hist-build"></a>hist-build</h3><p><img data-src="/2024/11/22/buildroot%E4%B8%ADgraph-build%E5%AE%9E%E6%93%8D/%E6%9E%84%E5%BB%BA%E9%A1%BA%E5%BA%8F%E7%9B%B4%E6%96%B9%E5%9B%BE.png" alt="构建顺序直方图"></p>
+<h3 id="hist-duration"><a href="#hist-duration" class="headerlink" title="hist-duration"></a>hist-duration</h3><p><img data-src="/2024/11/22/buildroot%E4%B8%ADgraph-build%E5%AE%9E%E6%93%8D/%E8%80%97%E6%97%B6%E9%A1%BA%E5%BA%8F%E7%9B%B4%E6%96%B9%E5%9B%BE.png" alt="耗时顺序直方图"></p>
+<h3 id="hist-name"><a href="#hist-name" class="headerlink" title="hist-name"></a>hist-name</h3><p><img data-src="/2024/11/22/buildroot%E4%B8%ADgraph-build%E5%AE%9E%E6%93%8D/%E5%8C%85%E5%90%8D%E9%A1%BA%E5%BA%8F%E7%9B%B4%E6%96%B9%E5%9B%BE.png" alt="包名顺序直方图"></p>
+<h2 id="pie"><a href="#pie" class="headerlink" title="pie"></a>pie</h2><p>pie主要是用于统计目的。</p>
+<h3 id="pie-packages"><a href="#pie-packages" class="headerlink" title="pie-packages"></a>pie-packages</h3><p><img data-src="/2024/11/22/buildroot%E4%B8%ADgraph-build%E5%AE%9E%E6%93%8D/%E8%BD%AF%E4%BB%B6%E5%8C%85%E6%9E%84%E5%BB%BA%E8%80%97%E6%97%B6%E9%A5%BC%E5%9B%BE.png" alt="软件包构建耗时饼图"></p>
+<h3 id="pie-steps"><a href="#pie-steps" class="headerlink" title="pie-steps"></a>pie-steps</h3><p><img data-src="/2024/11/22/buildroot%E4%B8%ADgraph-build%E5%AE%9E%E6%93%8D/%E6%80%BB%E6%9E%84%E5%BB%BA%E6%AD%A5%E9%AA%A4%E8%80%97%E6%97%B6%E9%A5%BC%E5%9B%BE.png" alt="总构建步骤耗时饼图"></p>
+<h2 id="timeline"><a href="#timeline" class="headerlink" title="timeline"></a>timeline</h2><p>timeline主要是用于优化编译依赖的目的。</p>
+<p><img data-src="/2024/11/22/buildroot%E4%B8%ADgraph-build%E5%AE%9E%E6%93%8D/%E6%9E%84%E5%BB%BA%E9%A1%BA%E5%BA%8F%E7%94%98%E7%89%B9%E5%9B%BE.png" alt="构建顺序甘特图"></p>
+<h3 id="timeline输出优化"><a href="#timeline输出优化" class="headerlink" title="timeline输出优化"></a>timeline输出优化</h3><p>使用默认的脚本，生成的图片纵坐标label都重叠了，且很多耗时短的包都绘制了，看起来不清晰。</p>
+<p>这里提供一个补丁，优化其输出。</p>
+<figure class="highlight patch"><table><tr><td class="code"><pre><span class="line"><span class="comment">diff --git a/support/scripts/graph-build-time b/support/scripts/graph-build-time</span></span><br><span class="line"><span class="comment">index 1edc3b3c..4c61f120 100755</span></span><br><span class="line"><span class="comment">--- a/support/scripts/graph-build-time</span></span><br><span class="line"><span class="comment">+++ b/support/scripts/graph-build-time</span></span><br><span class="line"><span class="meta">@@ -270,6 +270,10 @@</span> def pkg_timeline(data, output):</span><br><span class="line">     # give the proper dependency chain, but still provides a good-enough</span><br><span class="line">     # cascade graph.</span><br><span class="line">     for p in sorted(data, reverse=True, key=lambda x: x.steps_start[&#x27;configure&#x27;]):</span><br><span class="line"><span class="addition">+        # if configure + build time &lt; 4.0s, do not show in graph, to prevent the overlap of y-axis labels</span></span><br><span class="line"><span class="addition">+        if p.steps_end[&#x27;build&#x27;] - p.steps_start[&#x27;build&#x27;] + p.steps_end[&#x27;configure&#x27;] - p.steps_start[&#x27;configure&#x27;] &lt; 4.0:</span></span><br><span class="line"><span class="addition">+            continue</span></span><br><span class="line"><span class="addition">+</span></span><br><span class="line">         durations = []</span><br><span class="line">         facecolors = []</span><br><span class="line">         for step in steps:</span><br><span class="line"><span class="meta">@@ -295,9 +299,10 @@</span> def pkg_timeline(data, output):</span><br><span class="line"> </span><br><span class="line">     plt.gcf().subplots_adjust(left=0.2)</span><br><span class="line"> </span><br><span class="line"><span class="deletion">-    plt.tick_params(axis=&#x27;y&#x27;, which=&#x27;both&#x27;, labelsize=6)</span></span><br><span class="line"><span class="addition">+    # use small labelsize, to prevent the overlap of y-axis labels</span></span><br><span class="line"><span class="addition">+    plt.tick_params(axis=&#x27;y&#x27;, which=&#x27;both&#x27;, labelsize=2)</span></span><br><span class="line">     plt.title(&#x27;Timeline&#x27;)</span><br><span class="line"><span class="deletion">-    plt.savefig(output, dpi=300)</span></span><br><span class="line"><span class="addition">+    plt.savefig(output, dpi=1024)</span></span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"> # Parses the csv file passed on standard input and returns a list of</span><br></pre></td></tr></table></figure>
+
+<p><img data-src="/2024/11/22/buildroot%E4%B8%ADgraph-build%E5%AE%9E%E6%93%8D/%E6%9E%84%E5%BB%BA%E9%A1%BA%E5%BA%8F%E7%94%98%E7%89%B9%E5%9B%BE%E4%BC%98%E5%8C%96.png" alt="构建顺序甘特图优化"></p>
+]]></content>
+      <categories>
+        <category>技术</category>
+      </categories>
+      <tags>
+        <tag>buildroot</tag>
+        <tag>python</tag>
+        <tag>可视化</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Hello World</title>
     <url>/2023/08/10/hello-world/</url>
     <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
@@ -78,7 +144,7 @@
     <content><![CDATA[<p>近期有个任务，是让部门的项目开发变得可视化，以便老板们能快速了解项目情况。</p>
 <p>我这边主要是提供思路，从PMS系统中提取项目的任务以及缺陷情况，绘制成两张图——任务燃尽图（TR4）以及缺陷收敛图（TR5）。</p>
 <p>当然这个开发任务最终还是公司IT部门承接，我主要是配合。</p>
-<p>近期恰好学习了一些python的知识，心里想着python是否也能实现，于是就有了这批文章。</p>
+<p>近期恰好学习了一些python的知识，心里想着python是否也能实现，于是就有了这篇文章。</p>
 <span id="more"></span>
 
 <h1 id="任务燃尽图"><a href="#任务燃尽图" class="headerlink" title="任务燃尽图"></a>任务燃尽图</h1><h2 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h2><p>使用方法：</p>
