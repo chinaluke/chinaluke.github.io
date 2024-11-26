@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>http://example.com/2024/11/25/buildroot%E4%B8%ADBR2-INSTRUMENTATION-SCRIPTS%E5%AE%9E%E6%93%8D/</loc>
+    <lastmod>2024-11-26</lastmod>
+  </url>
+  <url>
     <loc>http://example.com/2024/11/22/buildroot%E4%B8%ADgraph-build%E5%AE%9E%E6%93%8D/</loc>
     <lastmod>2024-11-22</lastmod>
   </url>
